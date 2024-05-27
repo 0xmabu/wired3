@@ -1,0 +1,120 @@
+/*html*/
+body, html {
+    margin: 0px;
+}
+body {
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    color: aliceblue;
+}
+#header {
+    background-color: grey;
+    height: 30px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#header-options {
+    margin-left: 5px;
+    cursor: pointer;
+}
+#header-title {
+    font-size: medium;
+    font-weight: bold;
+}
+#header-listener {
+    margin-right: 5px;
+    cursor: pointer;
+}
+#options {
+    background-color: grey;
+    max-height: calc(100% - 30px); /*substract header*/
+    z-index: 1;
+    position: absolute;
+    font-size: small;
+    padding: 5px;
+}
+#options-nodes {
+    /*border: solid 1px aliceblue;*/
+    padding: 3px;
+}
+#options.hidden {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0px;
+}
+input {
+    margin-left: 0px;
+}
+option {
+    border-radius: 0px;
+}
+#details, #statistics {
+    position: absolute;
+    opacity: 0.5;
+    right: 0;
+}
+#statistics {
+    top: 35px;
+}
+#statistics p, table {
+    font-size: x-small;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+#details {
+    bottom: 0;
+    margin: 3px;
+    padding: 3px;
+}
+#details > * td, th {
+    font-size: x-small;
+    vertical-align: top;
+}
+table {
+    display: block;
+    text-align: left;
+    max-height: 40vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+#node-coms > thead {
+    top: 0;
+    position: sticky;
+    background: rgb(57, 49, 49);
+}
+
+/*svg*/
+svg {
+    width: 100%;
+    height: calc(100% - 30px); /*substract header*/
+    background-color: rgb(57, 49, 49);
+}
+text {
+    pointer-events: none;
+}
+.node {
+    r: 10px;
+    stroke: black;
+    stroke-width: 1px;
+    cursor: pointer;
+}
+.node.eth {
+    fill: rgb(120, 146, 147);
+}
+.node.ipv4, .node.ipv6 {
+    fill: rgb(222, 154, 99);
+}
+.node-group > text {
+    text-anchor: middle;
+    font-size: 50%;
+    fill: lightgray;
+}
+.link.coms {
+    stroke: grey;
+}
+.link.iface {
+    stroke: black;
+    stroke-dasharray: 2;
+    stroke-dashoffset: 1px;
+}

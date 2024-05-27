@@ -1,0 +1,64 @@
+<html>
+<head>
+    <title>WireD3</title>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" href="/images/wired3.png">
+    <link rel="stylesheet" href="/css/start.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="/js/start.js"></script>
+</head>
+<body>
+    <div id="header">
+        <span id="header-options">≡</span>
+        <span id="header-title">LiveWire</span>
+        <span id="header-listener" title="Start data listener">▶</span>
+    </div>
+    <div id="options" class="hidden";>
+        <div id="options-diagram">
+            <label>Diagram</label><br>
+            <hr>
+            <select>
+                <option value="nodelink" selected>Network</option>
+                <option value="chord">Chord</option>                  
+            </select>
+        </div>
+        <div id="options-nodes">
+            <label>Nodes</label><br>
+            <hr>
+            <input type="checkbox" name="eth" checked>
+            <label>Ethernet</label><br>
+            <input type="checkbox" name="ipv4">
+            <label>IPv4</label><br>
+            <input type="checkbox" name="ipv6">
+            <label>IPv6</label>
+        </div>
+    </div>
+    <div id="statistics">
+        <table id="stats-table">
+            <tr>
+                <td>Events: </td>
+                <td id="pkt-count">0</td>
+            </tr>
+            <tr>
+                <td>Eth Nodes: </td>
+                <td id="eth-count">0</td>
+            </tr>
+            <tr>
+                <td>IP Nodes: </td>
+                <td id="ip-count">0</td>
+            </tr>
+        </table>
+    </div>
+    <div id="graph">
+        <svg></svg>
+    </div>
+    <div id="details" style="display: none;">
+        <table id="node-info"></table>
+        <hr>
+        <table id="node-coms">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</body>
+</html>
