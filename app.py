@@ -9,7 +9,10 @@ import cypcap
 import struct
 import csv
 
-web_root = os.path.dirname(__file__) + '\\web\\'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+web_root = os.path.join(current_dir, 'web')
+web_data = os.path.join(web_root, 'data')
+
 os.chdir(web_root)
 
 class PacketCapture(threading.Thread):
@@ -158,7 +161,7 @@ def select_pcap_iface():
             print("Invalid input")
 
 def import_mac_data():
-    with open(web_root + 'data\\oui.csv', encoding="utf8") as file:
+    with open(os.path.join(web_data, 'oui.csv'), encoding="utf8") as file:
         csv_reader = csv.reader(file, delimiter=',')
         lookup_table = {}
         for row in csv_reader:
@@ -186,8 +189,8 @@ if __name__ == '__main__':
     capture_thread = PacketCapture(iface, data_queue)
     capture_thread.start()
 
-    delete_thread = threading.Thread(target=delete_queue_items, args=(data_queue, 60))  # Delete items older than 60 seconds
-    delete_thread.daemon = True  # Set the thread as daemon so it automatically exits when the main thread exits
+    delete_thread = threading.Thread(target=delete_queue_items, args=(data_queue, 60))
+    delete_thread.daemon = True
     delete_thread.start()
 
     run_webserver()
