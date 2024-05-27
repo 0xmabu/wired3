@@ -349,12 +349,10 @@ function updateDiagram() {
 
             d3.selectAll(".node")
                 .filter(d => d.id == this.__data__.source.id || d.id == this.__data__.target.id) //include source and target nodes
-                .style("stroke-width", 3)
                 .style("stroke", "red")
                 .transition()
                 .duration(pulseDuration)
                 .ease(d3.easePolyIn.exponent(3))
-                .style("stroke-width", 1)
                 .style("stroke", "black");
         });
     }
