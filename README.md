@@ -7,7 +7,9 @@ The server application is written in python and requires the cypcap library (htt
 
 # Running the application
 To start the server, run: python app.py.
+
 NOTE: The application may need sudo/admin privileges in order to start packet captures on the selected network adapter.
 
-Access the web application on: http://127.0.0.1:8000/start.html 
+Access the web application on: http://127.0.0.1:8000/start.html
+
 NOTE: You can start/stop the client data listener by pressing the button in the top right corner.
