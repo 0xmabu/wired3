@@ -107,7 +107,7 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         if os.path.exists(file_path) and os.path.isfile(file_path):
             #requested file
             self.send_response(200)
-            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-type', ('application/javascript' if self.path.split('.')[1] == 'js' else 'text/html'))
             self.end_headers()
             with open(file_path, 'rb') as file:
                 self.wfile.write(file.read())
