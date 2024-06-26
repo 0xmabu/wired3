@@ -99,6 +99,13 @@ text {
     stroke-width: 1px;
     cursor: pointer;
 }
+.node.net {
+    stroke: grey;
+    stroke-width: 2px;
+    fill: rgb(57, 49, 49);
+    r: 25px;
+    cursor: default;
+}
 .node.eth {
     fill: rgb(120, 146, 147);
 }
@@ -117,4 +124,10 @@ text {
     stroke: black;
     stroke-dasharray: 2;
     stroke-dashoffset: 1px;
+}
+path {
+    stroke: grey;
+}
+line {
+    stroke: grey;
 }

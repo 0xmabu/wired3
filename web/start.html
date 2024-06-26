@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="/images/wired3.png">
     <link rel="stylesheet" href="/css/start.css">
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="/js/start.js"></script>
+    <script src="./js/start.js"></script>
 </head>
 <body>
     <div id="header">
@@ -17,8 +17,9 @@
         <div id="options-diagram">
             <label>Diagram</label><br>
             <hr>
-            <select>
-                <option value="nodelink" selected>Network</option>               
+            <select id="diagram-select" autocomplete="off">
+                <option value="radial-tree" selected>Radial Tree</option>
+                <option value="network">Network</option>
             </select>
         </div>
         <div id="options-nodes">
@@ -26,31 +27,29 @@
             <hr>
             <input type="checkbox" name="eth" checked>
             <label>Ethernet</label><br>
-            <input type="checkbox" name="ipv4">
+            <input type="checkbox" name="ipv4" checked>
             <label>IPv4</label><br>
-            <input type="checkbox" name="ipv6">
+            <input type="checkbox" name="ipv6" checked>
             <label>IPv6</label>
         </div>
     </div>
     <div id="statistics">
         <table id="stats-table">
             <tr>
-                <td>Events: </td>
+                <td>Listener: </td>
+                <td id="listener-status">Stopped</td>
+            </tr>
+            <tr>
+                <td># Events: </td>
                 <td id="pkt-count">0</td>
             </tr>
             <tr>
-                <td>Eth Nodes: </td>
-                <td id="eth-count">0</td>
-            </tr>
-            <tr>
-                <td>IP Nodes: </td>
-                <td id="ip-count">0</td>
+                <td># Nodes: </td>
+                <td id="node-count">0</td>
             </tr>
         </table>
     </div>
-    <div id="graph">
-        <svg></svg>
-    </div>
+    <div id="diagram"></div>
     <div id="details" style="display: none;">
         <table id="node-info"></table>
         <hr>
