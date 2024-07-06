@@ -21,7 +21,8 @@ const data = {
 const counters = {
     events: 0
 };
-var eventSource, diagramChangeHandler, eventBatchSize = 10;
+const modules = {}, eventBatchSize = 10;
+var eventSource, diagramChangeHandler, interval;
 
 class Node {
     constructor(id, target) {
@@ -100,7 +101,7 @@ class PacketUtil {
     }
 
     static shortenIpv6(addr) { //to be fixed
-        return addr.replace(/\b(?:0+:){2,}/, ":");
+        return addr.replace(/\b(?:0+:){2,}/, ":");//replaceAll("((?::0\\b){2,}):?(?!\\S*\\b\\1:0\\b)(\\S*)", "::$2").replaceFirst("^0::","::")
     }
 
     static getIpProtocol(proto) {
@@ -115,8 +116,12 @@ class PacketUtil {
     }
 }
 
-window.addEventListener("DOMContentLoaded", function() {
-    //create static aspects of the diagram and load diagram-specific functions and event handlers
+window.addEventListener("DOMContentLoaded", async function() {
+    //load modules
+    modules.network = await import("./network.js");
+    modules.radialTree = await import("./radial-tree.js");
+
+    //initialize shared diagram stuff
     initializeDiagram();
 
     //add generic event listeners
@@ -126,7 +131,7 @@ window.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-async function initializeDiagram() {
+function initializeDiagram() {
     //reset diagram div
     const diagramDiv = d3.select("#diagram");
     diagramDiv.node().innerHTML = "";
@@ -145,7 +150,7 @@ async function initializeDiagram() {
             diagram.svgGroup.attr("transform", event.transform);
         });
     diagram.svg.call(zoom);
-    
+
     //remove existing diagram-specific event handlers if any
     if (diagram.module) {
         window.removeEventListener("resize", diagram.module.center);
@@ -155,24 +160,24 @@ async function initializeDiagram() {
         });
     }
 
-    //load diagram-specific functions
+    //bind diagram-specific functions
     if (diagram.type === "network") {
-        diagram.module = await import("./network.js");
+        diagram.module = modules.network;
     } else if (diagram.type === "radial-tree") {
-        diagram.module = await import("./radial-tree.js");
+        diagram.module = modules.radialTree;
     }
 
     //initialize new diagram, passing zoom to allow diagram-specific config (initial zoom transition)
     diagram.module.init(zoom);
 
     //define diagram change handler function
-    diagramChangeHandler = async function() {
+    diagramChangeHandler = function() {
         const listenerActive = eventSource === undefined || eventSource.readyState === 2 ? false : true;
         if (diagram.type === "network") diagram.simulation.stop();
 
         if (listenerActive) toggleSSE("off");
         diagram.type = this.value;
-        await initializeDiagram();
+        initializeDiagram();
         diagram.module.update();
         if (listenerActive) toggleSSE("on");
     }
@@ -210,8 +215,16 @@ function toggleSSE(mode) {
         eventSource = new EventSource("/data");
         eventSource.onmessage = processEvent;
         document.addEventListener("visibilitychange", changeHandler);
+
+        interval = d3.interval(d => {
+            if (counters.events > 0) {
+                counters.events = 0;
+                diagram.module.update();
+            }
+        }, 100);
     } else {
         if (eventSource != undefined) {
+            interval.stop();
             eventSource.close();
             document.removeEventListener("visibilitychange", changeHandler);
         }
@@ -226,138 +239,11 @@ function processEvent(event) {
     parseData(obj);
     updateStatsTable();
 
-    if (counters.events >= eventBatchSize) { //update diagram once we collected a batch of 10 data events
+    /*if (counters.events >= eventBatchSize) { //update diagram once we collected a batch of 10 data events
         counters.events = 0;
         diagram.module.update();
-    }
+    }*/
 }
-
-/*function addToDataArray(dataObj) {
-    for (let target of ["src","dst"]) {
-        //set data props to be parsed (src or dst)
-        if (target === "src") {
-            var mac = dataObj.src_mac, vendor = dataObj.src_mac_vendor, ip = dataObj.src_ip;
-        } else {
-            var mac = dataObj.dst_mac, vendor = dataObj.dst_mac_vendor, ip = dataObj.dst_ip;
-        }
-
-        //add eth node
-        var macKey = mac;
-
-        if (data.lookup.has(macKey) === false) {
-            var macObj = {
-                id: macKey,
-                addr: mac,
-                addr_type: "eth",
-                vendor: vendor,
-                cast_type: PacketUtil.getEthAddrCastType(mac),
-                assoc_ip: [],
-                src: target === "src" ? true : false,
-                dst: target === "dst" ? true : false,
-                expanded: false
-            };
-
-            data.lookup.set(macKey, macObj); //node lookup table
-            data.nodes.push(macObj);
-        } else {
-            var macObj = data.lookup.get(macKey);
-
-            if (target === "src" && macObj.src === false) {
-                macObj.src = true;
-            } else if (target === "dst" && macObj.dst === false) {
-                macObj.dst = true;
-            }
-        }
-
-        if (ip != undefined) {
-            //add ip node
-            var ipKey = `${mac},${ip}`;
-
-            if (data.lookup.has(ipKey) == false) {
-                var ipObj = {
-                    id: ipKey,
-                    addr: dataObj.ip_ver === 6 ? PacketUtil.shortenIpv6(ip) : ip,
-                    addr_type: dataObj.ip_ver === 4 ? "ipv4" : "ipv6",
-                    cast_type: PacketUtil.getIpAddrCastType(ip),
-                    assoc_eth: [macObj],
-                    src: target === "src" ? true : false,
-                    dst: target === "dst" ? true : false
-                };
-
-                data.lookup.set(ipKey, ipObj); //node lookup table
-                data.nodes.push(ipObj);
-                macObj.assoc_ip.push(ipObj);
-            } else {
-                var ipObj = data.lookup.get(ipKey);
-
-                if (target === "src" && ipObj.src === false) {
-                    ipObj.src = true;
-                } else if (target === "dst" && ipObj.dst === false) {
-                    ipObj.dst = true;
-                }
-            }
-
-            //add eth->ip (iface) link
-            var linkKey = `${macKey}-${ipKey}`;
-            diagram.pulse.push(linkKey);
-
-            if (data.lookup.has(linkKey) == false) {
-                var linkObj = {
-                    id: linkKey,
-                    source: macKey,
-                    target: ipKey,
-                    count: 1,
-                    type: "eth-ip"
-                };
-
-                data.lookup.set(linkKey, linkObj); //node lookup table
-                data.links.push(linkObj);
-            }
-        }
-
-        if (target === "src") { //only add com links for source props
-            //add eth coms link
-            var linkKey = `${macKey}-${dataObj.dst_mac}`;
-            diagram.pulse.push(linkKey);
-
-            if (data.lookup.has(linkKey) == false) {
-                var linkObj = {
-                    id: linkKey,
-                    source: macKey,
-                    target: dataObj.dst_mac,
-                    count: 1,
-                    type: "eth"
-                };
-
-                data.lookup.set(linkKey, linkObj); //node lookup table
-                data.links.push(linkObj);
-            } else {
-                data.lookup.get(linkKey).count++;
-            }
-
-            //add ip coms link
-            if (dataObj.src_ip != undefined) {
-                var linkKey = `${ipKey}-${`${dataObj.dst_mac},${dataObj.dst_ip}`}`;
-                diagram.pulse.push(linkKey);
-
-                if (data.lookup.has(linkKey) == false) {
-                    var linkObj = {
-                        id: linkKey,
-                        source: ipKey,
-                        target: `${dataObj.dst_mac},${dataObj.dst_ip}`,
-                        count: 1,
-                        type: "ip"
-                    };
-
-                    data.lookup.set(linkKey, linkObj); //node lookup table
-                    data.links.push(linkObj);
-                } else {
-                    data.lookup.get(linkKey).count++;
-                }
-            }
-        }
-    }
-}*/
 
 function parseData(dataObj) {
     for (let target of ["src","dst"]) {
@@ -453,6 +339,7 @@ function parseData(dataObj) {
 function updateStatsTable() {
     const statsTr = document.querySelectorAll("#stats-table td");
     statsTr[1].innerText = eventSource.readyState === 2 ? "Stopped" : "Running";
+    statsTr[1].style.color = statsTr[1].innerText === "Stopped" ? "orange" : "lime";
     statsTr[3].innerText = data.raw.length;
     statsTr[5].innerText = data.nodes.length;
 }
