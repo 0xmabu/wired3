@@ -20,10 +20,10 @@ export function init() {
 
 export function update() {
     //get data
-    let nodes = filterNodes(data.nodes)
-    let links = filterLinks(nodes, data.links)
+    let nodes = filterNodes(data.nodes);
+    let links = filterLinks(nodes, data.links);
     let linkWidthScale = getLinkScale(links);
-    
+
     //create nodes
     let nodeGroup = diagram.nodeGroup.selectAll(".node-group").data(nodes, d => d.id);
     nodeGroup.join(
@@ -75,7 +75,7 @@ export function update() {
         .attr("opacity", 0.3)
 
     //restart simulation if new nodes or links were added
-    if (nodeGroup.size() != diagram.prevNodeCount || linkGroup.size != diagram.prevLinkCount) {
+    if (nodeGroup.size() != diagram.prevNodeCount || linkGroup.size() != diagram.prevLinkCount) {
         diagram.simulation.nodes(nodes);
         diagram.simulation.force("link").links(links);
         diagram.simulation.alpha(1).restart();
