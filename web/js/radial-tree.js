@@ -16,30 +16,58 @@ export function init(zoom) {
 
 export function update() {
     let nodes = filterNodes(data.nodes);
-    const hData = buildNodeHierarchy(nodes);
-    const root = diagram.tree(d3.hierarchy(hData));
+    const nestedData = buildNodeHierarchy(nodes);
+    const root = diagram.tree(d3.hierarchy(nestedData));
+    const inputNodes = root.descendants();
 
+    //add id property to the link (used to identify them for pulse generation)
+    const inputLinks = root.links().map(link => ({ 
+        ...link,
+        id: `${link.source.data.id}-${link.target.data.id}`
+    }));
+    
+    //create a iteration-specific link pulse array
+    let pulse = [];
+    const regex = /^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}-[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$/; //mac-to-mac link regex
+    for (let lnk of diagram.pulse) { //src_mac->dst_mac links replaced with root-src_mac and root-dst_mac
+        if (regex.test(lnk)) {
+            pulse.push(`root-${lnk.split("-")[0]}`);
+            pulse.push(`root-${lnk.split("-")[1]}`);
+        } else {
+            pulse.push(lnk);
+        }
+    }
+    pulse = [...new Set(pulse)]; //remove any duplicates
+
+    d3.select(".node .link").interrupt();
+    
     //links
     let linkGroup = diagram.linkGroup
         .selectAll(".link-group")
-        .data(root.links(), d => d.target.data.id);
+        .data(inputLinks, d => d.id);
         
     linkGroup.join(
         enter => enter.append("g")
             .classed("link-group", true)
             .append("line")
+                .classed("link", true)
                 .transition()
                 .attr("x1", d => getRadial(d.source.x, d.source.y)[0])
                 .attr("y1", d => getRadial(d.source.x, d.source.y)[1])
                 .attr("x2", d => getRadial(d.target.x, d.target.y)[0])
                 .attr("y2", d => getRadial(d.target.x, d.target.y)[1]),
-        update => update.select("line")
+        update => update.select(".link")
             .transition()
             .attr("x1", d => getRadial(d.source.x, d.source.y)[0])
             .attr("y1", d => getRadial(d.source.x, d.source.y)[1])
             .attr("x2", d => getRadial(d.target.x, d.target.y)[0])
-            .attr("y2", d => getRadial(d.target.x, d.target.y)[1]),
-        exit => exit.select("line")
+            .attr("y2", d => getRadial(d.target.x, d.target.y)[1])
+            .on("end", function () {
+                if (pulse.includes(this.__data__.id)) {
+                    doPulse(d3.select(this));
+                }
+            }),
+        exit => exit.select(".link")
             .transition()
             .attr("x1", 0)
             .attr("y1", 0)
@@ -51,7 +79,7 @@ export function update() {
     //nodes
     let nodeGroup = diagram.nodeGroup
         .selectAll(".node-group")
-        .data(root.descendants(), d => d.data.id);
+        .data(inputNodes, d => d.data.id);
 
     nodeGroup.join(
         enter => enter.append("g")
@@ -87,6 +115,32 @@ export function update() {
             .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(0,0)`)
             .on("end", () => exit.remove()) //remove parent g when done
     );
+
+    //reset pulse array
+    diagram.pulse = []
+
+    function doPulse(linkSelection) {
+        let pulseDuration = 500;
+
+        linkSelection
+            .style("stroke-width", 5)
+            .style("stroke", "red")
+            .transition()
+            .duration(pulseDuration)
+            .ease(d3.easePolyIn.exponent(3))
+            .style("stroke-width", 1)
+            .style("stroke", "grey");
+
+        d3.selectAll(".node")
+            .filter(d => d.data.id === linkSelection.data()[0].source.data.id || d.data.id === linkSelection.data()[0].target.data.id) //include source and target nodes
+            .style("stroke-width", 10)
+            .style("stroke", "red")
+            .transition()
+            .duration(pulseDuration)
+            .ease(d3.easePolyIn.exponent(3))
+            .style("stroke", d => d.data.id === "root" ? "grey" : "black")
+            .style("stroke-width", 1);
+    }
 }
 
 export function center() {
