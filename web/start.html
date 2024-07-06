@@ -9,11 +9,11 @@
 </head>
 <body>
     <div id="header">
-        <span id="header-options">≡</span>
+        <span id="header-options" style="font-size: 20px;">≡</span>
         <span id="header-title">WireD3</span>
         <span id="header-listener" title="Start data listener">▶</span>
     </div>
-    <div id="options" class="hidden";>
+    <div id="options" class="hidden">
         <div id="options-diagram">
             <label>Diagram</label><br>
             <hr>
@@ -22,6 +22,7 @@
                 <option value="network">Network</option>
             </select>
         </div>
+        <br>
         <div id="options-nodes">
             <label>Nodes</label><br>
             <hr>
@@ -37,7 +38,7 @@
         <table id="stats-table">
             <tr>
                 <td>Listener: </td>
-                <td id="listener-status">Stopped</td>
+                <td id="listener-status" style="color: orange">Stopped</td>
             </tr>
             <tr>
                 <td># Events: </td>
