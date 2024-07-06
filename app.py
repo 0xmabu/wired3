@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
 from queue import Queue
+from getmac import get_mac_address
 import threading
 import time
 import json
@@ -16,17 +17,24 @@ web_data = os.path.join(web_root, 'data')
 os.chdir(web_root)
 
 class PacketCapture(threading.Thread):
-    def __init__(self, iface, queue):
+    def __init__(self, iface, queue, filter_cap_iface):
         super().__init__()
         self.interface = iface
         self.queue = queue
+        self.filter_cap_iface = filter_cap_iface
     
     def run(self):
         with cypcap.create(self.interface) as pcap:
             pcap.set_snaplen(65536)
             pcap.set_promisc(True)
-            pcap.set_timeout(1000)
+            #pcap.set_timeout(1000)
+            pcap.set_immediate_mode(True)
             pcap.activate()
+
+            if self.filter_cap_iface:
+                ip_addr = self.interface.addresses[0].addr[1][0] #first ip addr on interface
+                mac_addr = get_mac_address(ip=ip_addr)
+                pcap.setfilter("not ether src {} and not ether dst {}".format(mac_addr,mac_addr))
 
             print(f"Capturing packets on interface [{self.interface.description}]")
 
@@ -160,6 +168,16 @@ def select_pcap_iface():
         except ValueError:
             print("Invalid input")
 
+def filter_capture():
+    while True:
+        choice = input("Filter traffic to/from capture interface (y/n)?")
+        if choice == "y":
+            return True
+        elif choice == "n":
+            return False
+        else:
+            print("Invalid input")
+
 def import_mac_data():
     with open(os.path.join(web_data, 'oui.csv'), encoding="utf8") as file:
         csv_reader = csv.reader(file, delimiter=',')
@@ -186,7 +204,8 @@ if __name__ == '__main__':
     data_queue = Queue()
     mac_lookup = import_mac_data()
     iface = select_pcap_iface()
-    capture_thread = PacketCapture(iface, data_queue)
+    filter_capture_iface = filter_capture()
+    capture_thread = PacketCapture(iface, data_queue, filter_capture_iface)
     capture_thread.start()
 
     delete_thread = threading.Thread(target=delete_queue_items, args=(data_queue, 60))
