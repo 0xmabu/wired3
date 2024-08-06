@@ -63,10 +63,10 @@ export function update() {
                 .classed("label", true)
             ),
         update => update.select(".link")
-            .attr("stroke-width", d => linkWidthScale(d.count))
+            .attr("stroke-width", d => linkWidthScale(d.counter))
             .filter(d => diagram.pulse.includes(d.id)) //select links with updated counter
             .call(doPulse)
-            .select("title").text(d => d.count),
+            .select("title").text(d => d.counter),
         exit => exit.remove()
     )
 
@@ -117,8 +117,8 @@ export function center() {
 }
 
 function getLinkScale(links) {
-    let minCount = Math.min(...(links.map(d => d.count))),
-        maxCount = Math.max(...(links.map(d => d.count)));
+    let minCount = Math.min(...(links.map(d => d.counter))),
+        maxCount = Math.max(...(links.map(d => d.counter)));
     return d3.scaleLinear()
         .domain([minCount,maxCount])
         .range([1,5]);

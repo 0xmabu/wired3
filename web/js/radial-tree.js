@@ -39,13 +39,58 @@ export function update() {
     }
     pulse = [...new Set(pulse)]; //remove any duplicates
 
-    d3.select(".node .link").interrupt();
-    
+    //nodes
+    let nodeGroup = diagram.nodeGroup
+        .selectAll(".node-group")
+        .data(inputNodes, d => d.data.id);
+
+    const hasNewNodes = nodeGroup.enter().size() > 0 ? true : false; //used to control update transitions
+
+    nodeGroup.join(
+        enter => enter.append("g")
+            .classed("node-group", true)
+            .call(enter => enter.append("circle")
+                .attr("class", d => `node ${d.data.type}`)
+                .on("click", showDetails)
+                .transition()
+                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`)
+            )
+            .call(enter => enter.append("text")
+                .classed("label", true)
+                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0) rotate(${d.x >= Math.PI ? 180 : 0})`)
+                .attr("x", d => d.x < Math.PI === !d.children ? 40 : -40)
+                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
+                .text(d => d.data.name)
+            ),
+        update => update
+            .call(update => update.select("circle")
+                .each(function(d) {
+                    if (hasNewNodes) { //run transition
+                        d3.select(this).transition().attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`);
+                    } else { //skip transition
+                        d3.select(this).attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`);
+                    }
+                })
+            )
+            .call(update => update.select("text")
+                .attr("x", d => d.x < Math.PI === !d.children ? 40 : -40)
+                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
+                .transition()
+                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0) rotate(${d.x >= Math.PI ? 180 : 0})`)
+            ),
+        exit => exit
+            .call(exit => exit.select("text").remove()) //remove child text first
+            .select("circle")
+            .transition()
+            .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(0,0)`)
+            .on("end", () => exit.remove()) //remove parent g when done
+    );
+
     //links
     let linkGroup = diagram.linkGroup
         .selectAll(".link-group")
         .data(inputLinks, d => d.id);
-        
+    
     linkGroup.join(
         enter => enter.append("g")
             .classed("link-group", true)
@@ -76,51 +121,16 @@ export function update() {
             .on("end", () => exit.remove()) //remove parent g when done
     );
 
-    //nodes
-    let nodeGroup = diagram.nodeGroup
-        .selectAll(".node-group")
-        .data(inputNodes, d => d.data.id);
-
-    nodeGroup.join(
-        enter => enter.append("g")
-            .classed("node-group", true)
-            .call(enter => enter.append("circle")
-                .attr("class", d => `node ${d.data.type}`)
-                .on("click", showDetails)
-                .transition()
-                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`)
-            )
-            .call(enter => enter.append("text")
-                .classed("label", true)
-                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0) rotate(${d.x >= Math.PI ? 180 : 0})`)
-                .attr("x", d => d.x < Math.PI === !d.children ? 40 : -40)
-                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
-                .text(d => d.data.name)
-            ),
-        update => update
-            .call(update => update.select("circle")
-                .transition()
-                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`)
-            )
-            .call(update => update.select("text")
-                .attr("x", d => d.x < Math.PI === !d.children ? 40 : -40)
-                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
-                .transition()
-                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0) rotate(${d.x >= Math.PI ? 180 : 0})`)
-            ),
-        exit => exit
-            .call(exit => exit.select("text").remove()) //remove child text first
-            .select("circle")
-            .transition()
-            .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(0,0)`)
-            .on("end", () => exit.remove()) //remove parent g when done
-    );
-
     //reset pulse array
     diagram.pulse = []
 
     function doPulse(linkSelection) {
         let pulseDuration = 500;
+        let nodeSelection = d3.selectAll(".node")
+            .filter(d => d.data.id === linkSelection.data()[0].source.data.id || d.data.id === linkSelection.data()[0].target.data.id); //include source and target nodes
+
+        linkSelection.interrupt();
+        nodeSelection.interrupt();
 
         linkSelection
             .style("stroke-width", 5)
@@ -128,18 +138,22 @@ export function update() {
             .transition()
             .duration(pulseDuration)
             .ease(d3.easePolyIn.exponent(3))
-            .style("stroke-width", 1)
-            .style("stroke", "grey");
+            .style("stroke", "grey")
+            .style("stroke-width", 1);
 
-        d3.selectAll(".node")
-            .filter(d => d.data.id === linkSelection.data()[0].source.data.id || d.data.id === linkSelection.data()[0].target.data.id) //include source and target nodes
-            .style("stroke-width", 10)
+        nodeSelection
+            .style("stroke-width", 5)
             .style("stroke", "red")
             .transition()
             .duration(pulseDuration)
             .ease(d3.easePolyIn.exponent(3))
             .style("stroke", d => d.data.id === "root" ? "grey" : "black")
-            .style("stroke-width", 1);
+            .style("stroke-width", 1)
+            .on("end", function(d) {
+                d3.select(this)
+                    .style("stroke", d => d.data.id === "root" ? "grey" : "black")
+                    .style("stroke-width", 1)
+            });
     }
 }
 

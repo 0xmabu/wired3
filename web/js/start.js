@@ -125,7 +125,18 @@ window.addEventListener("DOMContentLoaded", async function() {
     initializeDiagram();
 
     //add generic event listeners
-    document.getElementById("header-listener").addEventListener("click", toggleSSEListener);
+    document.getElementById("header-listener").addEventListener("click", function () {
+        if (this.innerText === "▶") {
+            toggleSSE("on");
+            this.innerText = "◼︎";
+            this.title = "Stop listener";
+        } else {
+            toggleSSE("off");
+            this.innerText = "▶";
+            this.title = "Start listener";
+        }
+        updateStatsTable();
+    });
     document.getElementById("header-options").addEventListener("click", function () {
         document.getElementById("options").classList.toggle("hidden");
     });
@@ -190,20 +201,6 @@ function initializeDiagram() {
     });
 }
 
-function toggleSSEListener() {
-    if (this.innerText === "▶") {
-        toggleSSE("on");
-        this.innerText = "◼︎";
-        this.title = "Stop listener";
-    } else {
-        toggleSSE("off");
-        this.innerText = "▶";
-        this.title = "Start listener";
-    }
-
-    updateStatsTable();
-}
-
 function toggleSSE(mode) {
     const changeHandler = function() {
         if (document.visibilityState === "hidden") {
@@ -221,7 +218,7 @@ function toggleSSE(mode) {
                 counters.events = 0;
                 diagram.module.update();
             }
-        }, 100);
+        }, 100); //100 ms interval
     } else {
         if (eventSource != undefined) {
             interval.stop();
@@ -350,7 +347,6 @@ function showDetails() {
         infoData = infoTable.querySelectorAll("td"),
         comsTable = document.querySelector("#node-coms"),
         nodeId = this.__data__.id,
-        //nodeType = Object.keys(this.__data__).includes("assoc_ip") ? "eth" : "ip";
         nodeType = this.__data__.addr_type === "eth" ? "eth" : "ip";
 
     infoTable.innerHTML = "";
